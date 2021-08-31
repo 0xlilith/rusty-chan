@@ -1,19 +1,12 @@
 extern crate serenity;
 
 use base64::{encode, decode};
+use std::fmt::Write;  
 
+use std::collections::HashSet;
+use std::collections::HashMap;
 
-use std::{
-  collections::{HashMap, HashSet},
-  env,
-  fmt::Write,
-  sync::Arc,
-};
-/*use serenity::async_trait;*/
-/*use serenity::framework::standard::Args;*/
-/*use serenity::model::gateway::Ready;*/
 use serenity::client::{Client, Context, EventHandler};
-/*use serenity::model::channel::Message;*/
 use serenity::{
   async_trait,
   framework::standard::{
@@ -56,8 +49,8 @@ async fn help(
 
 #[group]
 #[description = "**GENERAL COMMANDS FOR THE BOT**"]
-#[commands(cat, test, db64, eb64,)]
-struct GENERAL_COMMANDS;
+#[commands(cat, test, db64, eb64, ip)]
+struct GeneralCommands;
 
 struct Handler;
 
@@ -74,7 +67,7 @@ async fn main() {
   let framework = StandardFramework::new()
       .configure(|c| c.prefix("+")) 
       .help(&HELP)
-      .group(&GENERAL_COMMANDS_GROUP);
+      .group(&GENERALCOMMANDS_GROUP);
 
   let mut file = File::open(".token").expect( "Error reading the file");
   let mut token = String::new();
@@ -121,7 +114,8 @@ async fn db64(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
   };
  
   let string = std::str::from_utf8(&byte)?;
-  msg.channel_id.say(&ctx.http, string).await?;
+  let newstring = &string.replace("@everyone", "`fuck you`").replace("@here", "`fuck you`");
+  msg.channel_id.say(&ctx.http, newstring).await?;
 
   Ok(())
 }
@@ -135,11 +129,26 @@ async fn eb64(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
   Ok(())
 }
 
-/* 
+
 #[command]
+#[description = "**FIND INFO OF ANY IP ADDRESS**"]
 async fn ip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
   let ipaddr = args.rest();
-  let mut res = reqwest::get("http://httpbin.org/{}/json",ipaddr)?;
+  let link = format!("{}{}{}","http://ipinfo.io/",ipaddr,"/json");
 
+  let res = reqwest::get(link)
+        .await?
+        .json::<HashMap<String, String>>()
+        .await?;
+
+
+  let content = res.iter().fold(String::new(), |mut acc, (key, value)| {
+    let _ = writeln!(&mut acc, "{}: \"{}\"", key, value);
+    acc
+  });  
+
+  let temp = format!("{}{}{}","```hs\n",content,"```");
+
+  msg.channel_id.say(&ctx.http, temp).await?;
+  Ok(())
 }
-*/
